@@ -8,6 +8,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
+using SimplyNats.Exceptions;
 using SimplyNats.Protocol;
 
 namespace SimplyNats
@@ -100,13 +101,21 @@ namespace SimplyNats
 
     }
 
+
     protected async Task ExecuteAsync(CancellationToken cancellationToken)
     {
-
       state = State.Connecting;
       var socket = new Socket(SocketType.Stream, ProtocolType.Tcp);
 
-      socket.Connect(new IPEndPoint(IPAddress.Loopback, _options.NatsUrl.Port));
+      try
+      {
+        await socket.ConnectAsync(new IPEndPoint(IPAddress.Loopback, _options.NatsUrl.Port));
+      }
+      catch(Exception err)
+      {
+        throw new ConnectionFailed(err);      
+      }
+      
       var stream = new NetworkStream(socket);
       var reader = PipeReader.Create(stream);
       var writer = PipeWriter.Create(stream);
